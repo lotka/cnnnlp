@@ -1,0 +1,4 @@
+*.pyc
+runs/
+csv/
+*.ipynb
