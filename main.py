@@ -19,6 +19,7 @@ from tensorflow.contrib import learn
 tf.flags.DEFINE_string("data_path","csv","Path to extracted books csv files")
 tf.flags.DEFINE_float("dev_sample_percentage", .01, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_integer('max_sentence_length',300,'Maximum length of sentences')
+tf.flags.DEFINE_string("class_encoding","full","book review data has 5 classes, can either split into positive or negative or leave the all 5")
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
@@ -49,12 +50,14 @@ print("")
 # Load data
 print("Loading data...")
 # Load the csv
-df = data_helpers.load_data(path=FLAGS.data_path,max_sentence_length=FLAGS.max_sentence_length)
+df = data_helpers.load_data(path=FLAGS.data_path,max_sentence_length=FLAGS.max_sentence_length,encoding=FLAGS.class_encoding)
 x_text,y = data_helpers.dataframe_to_xy(df)
 # Build vocabulary
 max_document_length = max([len(x.split(" ")) for x in x_text])
 vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
 x = np.array(list(vocab_processor.fit_transform(x_text)))
+print x.shape
+exit()
 # Split train/test set
 dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
 print 'dev_sample_index',dev_sample_index
@@ -80,7 +83,8 @@ with tf.Graph().as_default():
             vocab_size=len(vocab_processor.vocabulary_),
             embedding_size=FLAGS.embedding_dim,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
-            num_filters=FLAGS.num_filters)
+            num_filters=FLAGS.num_filters,
+            load_embeddings=False)
 
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -106,14 +110,15 @@ with tf.Graph().as_default():
         # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", cnn.loss)
         acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
+        reg_acc_summary = tf.summary.scalar("regression_accuracy",cnn.regression_accuracy)
 
         # Train Summaries
-        train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+        train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged,reg_acc_summary])
         train_summary_dir = os.path.join(out_dir, "summaries", "train")
         train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
         # Dev summaries
-        dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
+        dev_summary_op = tf.summary.merge([loss_summary, acc_summary,reg_acc_summary])
         dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
         dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
@@ -139,11 +144,11 @@ with tf.Graph().as_default():
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
-            _, step, summaries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
+            _, step, summaries, loss, accuracy,regression_accuracy = sess.run(
+                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy, cnn.regression_accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            print("{}: step {}, loss {:g}, acc {:g}, racc {:g}".format(time_str, step, loss, accuracy,regression_accuracy))
             train_summary_writer.add_summary(summaries, step)
 
         def dev_step(x_batch, y_batch, writer=None):
@@ -156,10 +161,10 @@ with tf.Graph().as_default():
               cnn.dropout_keep_prob: 1.0
             }
             step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
+                [global_step, dev_summary_op, cnn.loss, cnn.accuracy, cnn.regression_accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            print("{}: step {}, loss {:g}, acc {:g}, racc {:g}".format(time_str, step, loss, accuracy,regression_accuracy))
             if writer:
                 writer.add_summary(summaries, step)
 
