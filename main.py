@@ -18,7 +18,7 @@ from tensorflow.contrib import learn
 # Data loading params
 tf.flags.DEFINE_string("data_path","csv","Path to extracted books csv files")
 tf.flags.DEFINE_float("dev_sample_percentage", .01, "Percentage of the training data to use for validation")
-tf.flags.DEFINE_integer('max_sentence_length',500,'Maximum length of sentences')
+tf.flags.DEFINE_integer('max_sentence_length',300,'Maximum length of sentences')
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
