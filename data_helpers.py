@@ -22,12 +22,14 @@ def load_book(book_path,max_sentence_length,encoding='binary'):
     # drop the url
     df = df.drop('url',axis=1)
     # remove the html tags
-    df.text = df.text.str.replace('<(.*?)>','')
-    df.title = df.title.str.replace('<(.*?)>','')
+    df.text = df.text.str.replace('<(.*?)>',' ')
+    df.title = df.title.str.replace('<(.*?)>',' ')
+    df.text = df.text.str.replace('/\s\s+/g',' ')
+    df.title = df.title.str.replace('/\s\s+/g',' ')
 
     # clean up text
-    df['title'] = df.title.apply(clean_str_simple).apply(lambda x : ' '.join(x.split(' ')[:max_sentence_length]))
-    df['text'] = df.text.apply(clean_str_simple).apply(lambda x : ' '.join(x.split(' ')[:max_sentence_length]))
+    df['title'] = df.title.apply(clean_str_simple).apply(lambda x : ' '.join(x.strip(' ').split(' ')[:max_sentence_length]))
+    df['text'] = df.text.apply(clean_str_simple).apply(lambda x : ' '.join(x.strip(' ').split(' ')[:max_sentence_length]))
     df['onehot'] = encode_onehot(df.score,method=encoding)
     df = df[df.onehot.notnull()]
 
@@ -81,16 +83,18 @@ def load_data(max_sentence_length,
              'Paula_Hawkins-The-Girl-On-The-Train.csv',
              'Suzanne-Collins-The-Hunger-Games.csv']
 
-    df = load_books(path,books,encoding=encoding,max_sentence_length=max_sentence_length)
+    df = load_books(path,books,encoding=encoding,max_sentence_length=max_sentence_length,balance_classes=balance_classes)
 
-    if balance_classes:
-        max_class_count = df.score.value_counts().loc[1]
+    max_class_count = df.score.value_counts().loc[1]
 
-        df_list = []
-        for score,group in df.groupby(by='score'):
+    df_list = []
+    for score,group in df.groupby(by='score'):
+        if balance_classes:
             df_list.append(group.iloc[:max_class_count])
+        else:
+            df_list.append(group)
 
-        df = pd.concat(df_list).reset_index(drop=True)
+    df = pd.concat(df_list).reset_index(drop=True)
 
     if shuffle:
         np.random.seed(10)
