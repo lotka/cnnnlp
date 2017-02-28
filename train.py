@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import pickle
 import pandas as pd
 import re
 
@@ -9,6 +10,7 @@ import os
 import time
 import datetime
 import data_helpers
+import text_cnn; reload(text_cnn);
 from text_cnn import TextCNN
 from tensorflow.contrib import learn
 
@@ -17,7 +19,9 @@ from tensorflow.contrib import learn
 
 # Data loading params
 tf.flags.DEFINE_string("data_path","csv","Path to extracted books csv files")
+tf.flags.DEFINE_string("embedding_path","embeddings.pkl","Path to embeddings.pkl")
 tf.flags.DEFINE_float("dev_sample_percentage", .01, "Percentage of the training data to use for validation")
+tf.flags.DEFINE_float("test_sample_percentage",0.4,"Percentage to leave for testing")
 tf.flags.DEFINE_integer('max_sentence_length',300,'Maximum length of sentences')
 tf.flags.DEFINE_string("class_encoding","full","book review data has 5 classes, can either split into positive or negative or leave the all 5")
 
@@ -51,23 +55,47 @@ print("")
 print("Loading data...")
 # Load the csv
 df = data_helpers.load_data(path=FLAGS.data_path,max_sentence_length=FLAGS.max_sentence_length,encoding=FLAGS.class_encoding)
+# train/test split
+df = df.iloc[:int(-FLAGS.test_sample_percentage*len(df))]
 x_text,y = data_helpers.dataframe_to_xy(df)
 # Build vocabulary
 max_document_length = max([len(x.split(" ")) for x in x_text])
-vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
-x = np.array(list(vocab_processor.fit_transform(x_text)))
-print x.shape
-exit()
-# Split train/test set
+# vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
+# x = np.array(list(vocab_processor.fit_transform(x_text)))
+
+with open('embeddings.pkl','rb') as f:
+    emb = pickle.load(f)
+
+embeddings = emb['embeddings']
+dictionary = emb['dictionary']
+
+from tqdm import tqdm
+x = []
+for text in tqdm(x_text):
+    split = text.split(' ')
+    res = np.zeros(max_document_length)
+    for i in xrange(min(len(split),max_document_length)):
+        if split[i] in dictionary:
+            res[i] = dictionary[split[i]]
+        else:
+            res[i] = 0
+
+    x.append(res)
+
+x = np.array(x)
+
+# Split train/dev set
 dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
 print 'dev_sample_index',dev_sample_index
 x_train, x_dev = x[:dev_sample_index], x[dev_sample_index:]
 y_train, y_dev = y[:dev_sample_index], y[dev_sample_index:]
-print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
+print("Vocabulary Size: {:d}".format(len(dictionary) - 1))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
 print y_train.shape
 
+import text_cnn; reload(text_cnn)
+from text_cnn import TextCNN
 
 # Training
 # ==================================================
@@ -80,11 +108,10 @@ with tf.Graph().as_default():
         cnn = TextCNN(
             sequence_length=x_train.shape[1],
             num_classes=y_train.shape[1],
-            vocab_size=len(vocab_processor.vocabulary_),
+            vocab_size=len(dictionary) - 1,
             embedding_size=FLAGS.embedding_dim,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
-            num_filters=FLAGS.num_filters,
-            load_embeddings=False)
+            num_filters=FLAGS.num_filters,pretrained_embedding=embeddings)
 
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -110,7 +137,7 @@ with tf.Graph().as_default():
         # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", cnn.loss)
         acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
-        reg_acc_summary = tf.summary.scalar("regression_accuracy",cnn.regression_accuracy)
+        reg_acc_summary = tf.summary.scalar("regression_loss",cnn.regression_loss)
 
         # Train Summaries
         train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged,reg_acc_summary])
@@ -130,7 +157,7 @@ with tf.Graph().as_default():
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
         # Write vocabulary
-        vocab_processor.save(os.path.join(out_dir, "vocab"))
+#         vocab_processor.save(os.path.join(out_dir, "vocab"))
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
@@ -144,11 +171,11 @@ with tf.Graph().as_default():
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
-            _, step, summaries, loss, accuracy,regression_accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy, cnn.regression_accuracy],
+            _, step, summaries, loss, accuracy,regression_loss = sess.run(
+                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy, cnn.regression_loss],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}, racc {:g}".format(time_str, step, loss, accuracy,regression_accuracy))
+            print("{}: step {}, loss {:g}, acc {:g}, racc {:g}".format(time_str, step, loss, accuracy,regression_loss))
             train_summary_writer.add_summary(summaries, step)
 
         def dev_step(x_batch, y_batch, writer=None):
@@ -160,11 +187,11 @@ with tf.Graph().as_default():
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, cnn.loss, cnn.accuracy, cnn.regression_accuracy],
+            step, summaries, loss, accuracy, regression_loss = sess.run(
+                [global_step, dev_summary_op, cnn.loss, cnn.accuracy, cnn.regression_loss],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}, racc {:g}".format(time_str, step, loss, accuracy,regression_accuracy))
+            print("{}: step {}, loss {:g}, acc {:g}, rloss {:g}".format(time_str, step, loss, accuracy,regression_loss))
             if writer:
                 writer.add_summary(summaries, step)
 

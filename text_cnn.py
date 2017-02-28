@@ -8,7 +8,7 @@ class TextCNN(object):
     """
     def __init__(
       self, sequence_length, num_classes, vocab_size,
-      embedding_size, filter_sizes, num_filters):
+      embedding_size, filter_sizes, num_filters,pretrained_embedding=None):
 
         # Placeholders for input, output and dropout
         self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
@@ -17,9 +17,12 @@ class TextCNN(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            W = tf.Variable(
-                tf.truncated_normal([vocab_size, embedding_size],stddev=0.001),
-                name="W")
+            if pretrained_embedding is None:
+                W = tf.Variable(
+                    tf.truncated_normal([vocab_size, embedding_size],stddev=0.001),
+                    name="W")
+            else:
+                W = tf.Variable(pretrained_embedding,name="W",trainable=True)
             self.embedded_chars = tf.nn.embedding_lookup(W, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
 
@@ -78,6 +81,6 @@ class TextCNN(object):
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
 
-        with tf.name_scope("regression_accuracy"):
+        with tf.name_scope("regression_loss"):
             error = tf.to_float(self.predictions - tf.argmax(self.input_y,1))
-            self.regression_accuracy = tf.sqrt(tf.reduce_mean(tf.pow(error,2)),name='regression_accuracy')
+            self.regression_loss = tf.sqrt(tf.reduce_mean(tf.pow(error,2)),name='regression_loss')

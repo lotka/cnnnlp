@@ -73,15 +73,18 @@ def load_data(max_sentence_length,
               path='csv',
               balance_classes=True,
               shuffle=True,
-              encoding='binary'):
-    books = ['EL-James-Fifty-Shades-of-Grey.csv',
-             'Andy-Weir-The-Martian.csv',
-             'Donna-Tartt-The-Goldfinch.csv',
-             'Fillian_Flynn-Gone_Girl.csv',
-             'John-Green-The-Fault-in-our-Stars.csv',
-             'Laura-Hillenbrand-Unbroken.csv',
-             'Paula_Hawkins-The-Girl-On-The-Train.csv',
-             'Suzanne-Collins-The-Hunger-Games.csv']
+              encoding='binary',book=None):
+    if book is None:
+        books = ['EL-James-Fifty-Shades-of-Grey.csv',
+                 'Andy-Weir-The-Martian.csv',
+                 'Donna-Tartt-The-Goldfinch.csv',
+                 'Fillian_Flynn-Gone_Girl.csv',
+                 'John-Green-The-Fault-in-our-Stars.csv',
+                 'Laura-Hillenbrand-Unbroken.csv',
+                 'Paula_Hawkins-The-Girl-On-The-Train.csv',
+                 'Suzanne-Collins-The-Hunger-Games.csv']
+    else:
+        books=[book]
 
     df = load_books(path,books,encoding=encoding,max_sentence_length=max_sentence_length,balance_classes=balance_classes)
 
