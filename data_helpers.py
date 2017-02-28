@@ -15,6 +15,9 @@ def clean_str_simple(string):
     return string.lower()
 
 def load_book(book_path,max_sentence_length,encoding='binary'):
+    """
+        Load a book with pandas, applying various bits of preprocessing
+    """
     df = pd.read_csv(book_path,delimiter='\t',header=None)
 
     # name the columns
@@ -36,6 +39,9 @@ def load_book(book_path,max_sentence_length,encoding='binary'):
     return df
 
 def load_books(path,books,max_sentence_length,balance_classes=False,encoding='full'):
+    """
+        Load a list of books
+    """
     dfs = []
     for book in books:
         dfs.append(load_book(os.path.join(path,book),
@@ -74,6 +80,9 @@ def load_data(max_sentence_length,
               balance_classes=True,
               shuffle=True,
               encoding='binary',book=None):
+    """
+        Load all books and applying class balancing and shuffling
+    """
     if book is None:
         books = ['EL-James-Fifty-Shades-of-Grey.csv',
                  'Andy-Weir-The-Martian.csv',
@@ -106,6 +115,9 @@ def load_data(max_sentence_length,
     return df
 
 def dataframe_to_xy(df):
+    """
+        Convert pandas dataframe to tensorflow ready data strucutres
+    """
     return df.text.values,np.vstack(df.onehot.values)
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):

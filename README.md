@@ -1,20 +1,18 @@
 # CNNNLP
-Using CNNs for text classification [2] was the starting point for the code and [5] was used to pre train word embeddings
+Using CNNs to predict book reviews [2] was the starting point for the code and [5] was adapted create word embeddings. Training results are visualised with tensorboard.
 
 # Data
-https://archive.ics.uci.edu/ml/datasets/Amazon+book+reviews
-
-( More detail: http://ataspinar.com/2016/01/21/sentiment-analysis-with-bag-of-words/ )
+https://archive.ics.uci.edu/ml/datasets/Amazon+book+reviews ( More detail: http://ataspinar.com/2016/01/21/sentiment-analysis-with-bag-of-words/ )
 
 # Usage Example
 Assuming you extracted the amazon review datafiles to a folder called `csv`
 
-Pretraining: Generate embeddings.pkl (example provided in this repo)
+Pretraining: Generate embeddings.pkl (an example of this file is provided in the repo, also see tnse.png for a visual interpretation)
 ```
 python train_embeddings.py
 ```
 
-Training (creates a folder called runs):
+Training (saves results to a folder called `runs`):
 ```
 python train.py --data_path='csv/'
 ```
@@ -29,6 +27,7 @@ If you don't supply the book_name it will by default use the last 40% of the ful
 
 # Todo:
 * Improve code so you can train without the word embeddings pickle
+* Improve evaluation procedure
 * See if larger models give accuracy improvements
 
 # References

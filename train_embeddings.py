@@ -204,6 +204,10 @@ for step in xrange(num_steps):
             print log_str
 final_embeddings = normalized_embeddings.eval(session=session)
 
+# Save the embeddings
+with open('embeddings.pkl','wb') as f:
+    pickle.dump({'embeddings' : embeddings.eval(session=session), 'dictionary' : dictionary},f)
+
 # Step 6: Visualize the embeddings.
 
 try:
@@ -218,8 +222,5 @@ try:
 
 except ImportError:
     print "Please install sklearn, matplotlib, and scipy to visualize embeddings."
-
-with open('embeddings.pkl','wb') as f:
-    pickle.dump({'embeddings' : embeddings.eval(session=session), 'dictionary' : dictionary},f)
 
 session.close()
