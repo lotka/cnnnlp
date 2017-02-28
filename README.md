@@ -1,5 +1,7 @@
 # CNNNLP
-Using CNNs for text classification [2] was the starting point for the code and [5] was used to pre train word embeddings
+Using CNNs for text classification [2] was the starting point for the code and [5] was used to pre train word embeddings.
+
+See requirements.txt for dependencies.
 
 # Data
 https://archive.ics.uci.edu/ml/datasets/Amazon+book+reviews
