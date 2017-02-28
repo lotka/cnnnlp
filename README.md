@@ -18,7 +18,7 @@ Training (creates a folder called runs):
 ```
 python train.py --data_path='csv/'
 ```
-By defualt use the first 60% of the data set. (Try `python train_embeddings.py --help` for more options.)
+By default use the first 60% of the data set. (Try `python train_embeddings.py --help` for more options.)
 
 
 Evaluation:
