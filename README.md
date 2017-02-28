@@ -1,5 +1,6 @@
 # CNNNLP
 Using CNNs to predict book reviews [2] was the starting point for the code and [5] was adapted create word embeddings. Training results are visualised with tensorboard.
+See requirements.txt for dependencies.
 
 # Data
 https://archive.ics.uci.edu/ml/datasets/Amazon+book+reviews ( More detail: http://ataspinar.com/2016/01/21/sentiment-analysis-with-bag-of-words/ )
@@ -16,7 +17,7 @@ Training (saves results to a folder called `runs`):
 ```
 python train.py --data_path='csv/'
 ```
-By defualt use the first 60% of the data set. (Try `python train_embeddings.py --help` for more options.)
+By default use the first 60% of the data set. (Try `python train_embeddings.py --help` for more options.)
 
 
 Evaluation:
